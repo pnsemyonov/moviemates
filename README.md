@@ -1,8 +1,8 @@
 ### API for UI testing of MovieMates mobile app
 
 Used tools:
-- Java
-- Appium API
+- _Java_
+- _Appium API_
 
 Given code represents working prototype of API for UI testing of social network hybrid mobile app. Choice of Appium has been determined by needs to provide platform-independent testing on both iOS and Android.
 
