@@ -121,16 +121,19 @@ public class PlatformDriver {
                 // Mobile device name
                 capabilities.setCapability("deviceName", deviceInfo.getString("deviceName"));
                 // How long Appium Server will wait for new command from client before session end (seconds)
-                capabilities.setCapability("newCommandTimeout", 30);
+                capabilities.setCapability("newCommandTimeout", 300);
                 // "Android", "iOS"
                 String platformName = deviceInfo.getString("platformName");
                 capabilities.setCapability("platformName", platformName);
                 if (platformName.equals("Android")) {
                     // Activity name to launch from package (Android only)
                     capabilities.setCapability("appActivity", "us.moviemates.Activities.MainActivity");
+//                    capabilities.setCapability("appActivity", "com.webview.mm.webviewtest.MainActivity");
                     // Java package of app to run
                     capabilities.setCapability("appPackage", "us.moviemates");
+//                    capabilities.setCapability("appPackage", "com.webview.mm.webviewtest");
                     capabilities.setCapability(CapabilityType.PLATFORM, "ANDROID");
+                    capabilities.setCapability("useKeystore", false);
                     PlatformDriver.this.driver = new AndroidDriver<AndroidElement>(new URL(PlatformDriver.this.protocol, PlatformDriver.this.host, PlatformDriver.this.port, PlatformDriver.this.file), capabilities);
                 }
                 else if (platformName.equals("iOS")) {

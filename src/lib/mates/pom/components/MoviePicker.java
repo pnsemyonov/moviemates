@@ -4,13 +4,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.openqa.selenium.NoSuchElementException;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.SwipeElementDirection;
 import lib.mates.pom.PlatformDriver;
+import lib.mates.pom.utils.Convert;
 
 
 /**
@@ -36,11 +35,11 @@ public class MoviePicker {
      * @param platformDriver  Tailored wrapper of AppiumDriver.
      */
     public MoviePicker(PlatformDriver platformDriver) {
-        MoviePicker.this.platformDriver = platformDriver;
+        this.platformDriver = platformDriver;
         // Instance of AndroidDriver or IOSDriver
-        MoviePicker.this.driver = platformDriver.getDriver();
+        this.driver = platformDriver.getDriver();
         // Populates "movies" with movie items
-        MoviePicker.this.getMovies();
+        this.getMovies();
     }
 
     /**
@@ -48,19 +47,59 @@ public class MoviePicker {
      * @return  Collection of movie items visible in movie list.
      */
     public List<MovieItem> getMovies() {
-        MoviePicker.this.movies.clear();
+        this.movies.clear();
         // Head element of container
-        MoviePicker.this.pickerHeadElement = 
-            MoviePicker.this.driver.findElementById("us.moviemates:id/pagerAdapterFromMovies");
+        this.pickerHeadElement = 
+            this.driver.findElementById("us.moviemates:id/pagerAdapterFromMovies");
         // Find number of movies in visible list
         int movieItemsNumber = 
-            MoviePicker.this.pickerHeadElement.findElementsById("us.moviemates:id/rlItemFilm").
+            this.pickerHeadElement.findElementsById("us.moviemates:id/rlItemFilm").
             size();
         // Build movie items
         for (int movieItemIndex = 0; movieItemIndex < movieItemsNumber; movieItemIndex++) {
-            MoviePicker.this.movies.add(new MovieItem(movieItemIndex));
+            this.movies.add(new MovieItem(movieItemIndex));
         }
-        return MoviePicker.this.movies;
+        return this.movies;
+    }
+
+    public MovieItem findMovie(String name) {
+        String firstMovieName = "";
+        String movieName;
+        while (true) {
+            this.scrollDown(3);
+            movieName = new MovieItem(0).getTitle();
+            if (movieName.equals(firstMovieName)) {
+                break;
+            }
+            else {
+                firstMovieName = movieName;
+            }
+        }
+        List<MovieItem> movies;
+        String lastMovieName = "";
+        MovieItem result = null;
+        while (true) {
+            movies = this.getMovies();
+            for (MovieItem movie : movies) {
+                if (movie.getTitle().toUpperCase().contains(name.toUpperCase())) {
+                    result = movie;
+                    break;
+                }
+            }
+            if (result != null) {
+                break;
+            }
+            else {
+                if (movies.get(movies.size() - 1).getTitle().equals(lastMovieName)) {
+                    break;
+                }
+                else {
+                    lastMovieName = movies.get(movies.size() - 1).getTitle();
+                    this.scrollUp(3);
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -68,7 +107,7 @@ public class MoviePicker {
      * @param steps  Swipe distance measured in movie items
      */
     public void scrollUp(int steps) {
-        MoviePicker.this.scroll(SwipeElementDirection.UP, steps);
+        this.scroll(SwipeElementDirection.UP, steps);
     }
 
     /**
@@ -76,7 +115,7 @@ public class MoviePicker {
      * @param steps  Swipe distance measured in movie items
      */
     public void scrollDown(int steps) {
-        MoviePicker.this.scroll(SwipeElementDirection.DOWN, steps);
+        this.scroll(SwipeElementDirection.DOWN, steps);
     }
 
     /**
@@ -86,10 +125,10 @@ public class MoviePicker {
      */
     private void scroll(SwipeElementDirection direction, int steps) {
         // Do not exceed number of visible movies
-        if (steps <= MoviePicker.this.movies.size() - 1) {
-            int centerY = MoviePicker.this.pickerHeadElement.getCenter().y;
+        if (steps <= this.movies.size() - 1) {
+            int centerY = this.pickerHeadElement.getCenter().y;
             // Obtain height of one movie row
-            int movieItemHeight = MoviePicker.this.movies.get(1).headElement.getSize().height;
+            int movieItemHeight = this.movies.get(1).headElement.getSize().height;
             int startY;
             int endY;
             if (direction == SwipeElementDirection.UP) {
@@ -102,14 +141,14 @@ public class MoviePicker {
                 startY = centerY - (movieItemHeight * steps / 2);
                 endY = startY + (movieItemHeight * steps);
             }
-            int startX = MoviePicker.this.pickerHeadElement.getCenter().x;
-            MoviePicker.this.driver.swipe(startX, startY, startX, endY, 500 * steps);
+            int startX = this.pickerHeadElement.getCenter().x;
+            this.driver.swipe(startX, startY, startX, endY, 500 * steps);
             // Update list of movies as they have been changed
-            MoviePicker.this.getMovies();
+            this.getMovies();
         }
         else {
             throw new IndexOutOfBoundsException(String.format("Scroll cannot exceed %d steps.", 
-                MoviePicker.this.movies.size() - 1));
+                this.movies.size() - 1));
         }
     }
 
@@ -122,10 +161,6 @@ public class MoviePicker {
         // android.widget.RelativeLayout[@resource-id="us.moviemates:id/rlItemFilm"]
         private String headElementSelector;
         private MobileElement headElement;
-        // Ex. "2hr 34min"
-        private Pattern runTimePattern = Pattern.compile("([0-2]?\\d)hr\\s([0-5]?\\d)min");
-        // Ex. "2 interested"
-        private Pattern peopleCountPattern = Pattern.compile("(\\d*)\\sinterested");
         
         /**
          * @param movieItemIndex  Index of movie in list (first - 0).
@@ -164,11 +199,7 @@ public class MoviePicker {
                 // android.widget.TextView[@resource-id="us.moviemates:id/tvRunTime"]
                 String elementText = MovieItem.this.headElement.
                     findElementById("us.moviemates:id/tvRunTime").getText();
-                Matcher runTimeMatcher = MovieItem.this.runTimePattern.matcher(elementText);
-                if (runTimeMatcher.matches()) {
-                    runTime = LocalTime.of(Integer.parseInt(runTimeMatcher.group(1)), 
-                        Integer.parseInt(runTimeMatcher.group(2)));
-                }
+                runTime = Convert.parseRunTime(elementText);
             }
             catch (NoSuchElementException e) {
             }
@@ -185,11 +216,7 @@ public class MoviePicker {
                 // android.widget.TextView[@resource-id="us.moviemates:id/tvPeopleCount"]
                 String elementText = MovieItem.this.headElement.
                     findElementById("us.moviemates:id/tvPeopleCount").getText();
-                Matcher peopleCountMatcher = MovieItem.this.peopleCountPattern.
-                    matcher(elementText);
-                if (peopleCountMatcher.matches()) {
-                    peopleCount = Integer.parseInt(peopleCountMatcher.group(1));
-                }
+                peopleCount = Convert.parsePeopleCount(elementText);
             }
             catch (NoSuchElementException e) {
             }
